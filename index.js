@@ -77,11 +77,22 @@ app.post('/api/users', (req, res) => {
   });
 });
 
+// Endpoint to get a list of all users
+app.get('/api/users', (req, res) => {
+  User.find({}, 'username _id', (err, users) => {
+    if (err) {
+      return res.status(500).json({ error: err.message });
+    }
+    res.json(users);
+  });
+});
+
 // Endpoint to create a new excerise
 app.post('/api/users/:_id/exercises', (req, res) => {
   const userId = req.params._id;
   const { description, duration, date } = req.body;
 
+  // Create the exercise data
   const exerciseData = {
     user_id: userId,
     description,
@@ -89,23 +100,25 @@ app.post('/api/users/:_id/exercises', (req, res) => {
     date: date ? new Date(date).toDateString() : new Date().toDateString()
   };
 
+  // Save the exercise
   const newExercise = new Exercise(exerciseData);
   newExercise.save((err, savedExercise) => {
     if (err) {
       return res.status(500).json({ error: err.message });
     }
 
+    // Find the user and include the exercise data in the response
     User.findById(userId, (err, user) => {
       if (err || !user) {
-        return res.status(500).json({ error: 'User not found' });
+        return res.status(400).json({ error: 'User not found' });
       }
 
       res.json({
+        _id: user._id,
         username: user.username,
         description: savedExercise.description,
         duration: savedExercise.duration,
-        date: savedExercise.date,
-        _id: savedExercise._id
+        date: savedExercise.date
       });
     });
   });
@@ -115,11 +128,13 @@ app.get('/api/users/:_id/logs', (req, res) => {
   const userId = req.params._id;
   const { from, to, limit } = req.query;
 
+  // Find the user by ID
   User.findById(userId, (err, user) => {
     if (err || !user) {
       return res.status(400).json({ error: 'User not found' });
     }
 
+    // Build the query for exercises
     let query = { user_id: userId };
 
     if (from) {
@@ -130,16 +145,18 @@ app.get('/api/users/:_id/logs', (req, res) => {
     }
 
     let findQuery = Exercise.find(query).select('-_id description duration date');
-    
+
     if (limit) {
       findQuery = findQuery.limit(parseInt(limit));
     }
 
+    // Execute the query
     findQuery.exec((err, exercises) => {
       if (err) {
         return res.status(500).json({ error: err.message });
       }
 
+      // Return the response
       res.json({
         _id: userId,
         username: user.username,
