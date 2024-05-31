@@ -3,6 +3,7 @@ const app = express()
 const cors = require('cors')
 require('dotenv').config()
 const mongoose = require('mongoose');
+const bodyParser = require('body-parser');
 
 const listener = app.listen(process.env.PORT || 3000, () => {
   console.log('Your app is listening on port ' + listener.address().port)
@@ -29,9 +30,10 @@ const User = mongoose.model('User', userSchema);
 
 // Define the schema for a User
 const excersiceSchema = new mongoose.Schema({
-  username: {
-    type: String,
-    required: false
+  user_id: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    required: true
   },
   description: {
     type: String,
@@ -46,7 +48,7 @@ const excersiceSchema = new mongoose.Schema({
     required: true
   },
 });
-const Excersice = mongoose.model('Excersice', excersiceSchema);
+const Exercise = mongoose.model('Excersice', excersiceSchema);
 
 
 app.use(cors())
@@ -58,6 +60,7 @@ app.get('/', (req, res) => {
 
 // Middleware to parse URL-encoded bodies
 app.use(express.urlencoded({ extended: true }));
+app.use(bodyParser.json());
 
 // Endpoint to create a new user
 app.post('/api/users', (req, res) => {
@@ -71,6 +74,40 @@ app.post('/api/users', (req, res) => {
       return res.status(500).send(err);
     }
     res.status(200).send(data);
+  });
+});
+
+// Endpoint to create a new excerise
+app.post('/api/users/:_id/exercises', (req, res) => {
+  const userId = req.params._id;
+  const { description, duration, date } = req.body;
+
+  const exerciseData = {
+    user_id: userId,
+    description,
+    duration: parseInt(duration),
+    date: date ? new Date(date).toDateString() : new Date().toDateString()
+  };
+
+  const newExercise = new Exercise(exerciseData);
+  newExercise.save((err, savedExercise) => {
+    if (err) {
+      return res.status(500).json({ error: err.message });
+    }
+
+    User.findById(userId, (err, user) => {
+      if (err || !user) {
+        return res.status(500).json({ error: 'User not found' });
+      }
+
+      res.json({
+        username: user.username,
+        description: savedExercise.description,
+        duration: savedExercise.duration,
+        date: savedExercise.date,
+        _id: savedExercise._id
+      });
+    });
   });
 });
 
