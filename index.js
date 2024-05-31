@@ -111,4 +111,43 @@ app.post('/api/users/:_id/exercises', (req, res) => {
   });
 });
 
+app.get('/api/users/:_id/logs', (req, res) => {
+  const userId = req.params._id;
+  const { from, to, limit } = req.query;
+
+  User.findById(userId, (err, user) => {
+    if (err || !user) {
+      return res.status(400).json({ error: 'User not found' });
+    }
+
+    let query = { user_id: userId };
+
+    if (from) {
+      query.date = { ...query.date, $gte: new Date(from).toDateString() };
+    }
+    if (to) {
+      query.date = { ...query.date, $lte: new Date(to).toDateString() };
+    }
+
+    let findQuery = Exercise.find(query).select('-_id description duration date');
+    
+    if (limit) {
+      findQuery = findQuery.limit(parseInt(limit));
+    }
+
+    findQuery.exec((err, exercises) => {
+      if (err) {
+        return res.status(500).json({ error: err.message });
+      }
+
+      res.json({
+        _id: userId,
+        username: user.username,
+        count: exercises.length,
+        log: exercises
+      });
+    });
+  });
+});
+
 
