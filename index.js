@@ -30,23 +30,10 @@ const User = mongoose.model('User', userSchema);
 
 // Define the schema for a User
 const excersiceSchema = new mongoose.Schema({
-  user_id: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
-    required: true
-  },
-  description: {
-    type: String,
-    required: true
-  },
-  duration: {
-    type: Number,
-    required: true
-  },
-  date: {
-    type: String,
-    required: true
-  },
+  user_id: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+  description: { type: String, required: true },
+  duration: { type: Number, required: true },
+  date: { type: Date, required: true },
 });
 const Exercise = mongoose.model('Excersice', excersiceSchema);
 
@@ -129,7 +116,7 @@ app.get('/api/users/:_id/logs', (req, res) => {
   const { from } = req.query;
   const { to } = req.query;
   const { limit } = req.query;
-  
+
   // Find the user by ID
   User.findById(userId, (err, user) => {
     if (err || !user) {
