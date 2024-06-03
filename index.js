@@ -97,7 +97,7 @@ app.post('/api/users/:_id/exercises', (req, res) => {
     user_id: userId,
     description,
     duration: parseInt(duration),
-    date: date ? new Date(date).toDateString() : new Date().toDateString()
+    date: date ? new Date(date) : new Date()
   };
 
   // Save the exercise
@@ -118,7 +118,7 @@ app.post('/api/users/:_id/exercises', (req, res) => {
         username: user.username,
         description: savedExercise.description,
         duration: savedExercise.duration,
-        date: savedExercise.date
+        date: new Date(savedExercise.date).toDateString()
       });
     });
   });
@@ -126,8 +126,10 @@ app.post('/api/users/:_id/exercises', (req, res) => {
 
 app.get('/api/users/:_id/logs', (req, res) => {
   const userId = req.params._id;
-  const { from, to, limit } = req.query;
-
+  const { from } = req.query;
+  const { to } = req.query;
+  const { limit } = req.query;
+  
   // Find the user by ID
   User.findById(userId, (err, user) => {
     if (err || !user) {
@@ -138,13 +140,13 @@ app.get('/api/users/:_id/logs', (req, res) => {
     let query = { user_id: userId };
 
     if (from) {
-      query.date = { ...query.date, $gte: new Date(from).toDateString() };
+      query.date = { ...query.date, $gte: new Date(from) };
     }
     if (to) {
-      query.date = { ...query.date, $lte: new Date(to).toDateString() };
+      query.date = { ...query.date, $lte: new Date(to) };
     }
 
-    let findQuery = Exercise.find(query).select('-_id description duration date');
+    let findQuery = Exercise.find(query).select('description duration date');
 
     if (limit) {
       findQuery = findQuery.limit(parseInt(limit));
@@ -156,15 +158,23 @@ app.get('/api/users/:_id/logs', (req, res) => {
         return res.status(500).json({ error: err.message });
       }
 
+      // Format the log with dates in 'toDateString' format
+      const log = exercises.map(ex => ({
+        description: ex.description,
+        duration: ex.duration,
+        date: new Date(ex.date).toDateString()
+      }));
+
       // Return the response
       res.json({
         _id: userId,
         username: user.username,
         count: exercises.length,
-        log: exercises
+        log: log
       });
     });
   });
 });
+
 
 
